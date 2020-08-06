@@ -41,7 +41,7 @@ def drop_buttons():
     return dropers
 
 
-def categories_buttons(categories_list=None, clean=False):
+def categories_buttons(categories_list=None):
     """    if clean:
         categories = ReplyKeyboardRemove()
     else:

@@ -4,7 +4,7 @@ from aiogram import Bot, types
 from aiogram.dispatcher import Dispatcher
 from aiogram.utils import executor
 from utils import User_states
-from postgres import Postgres_Query
+from postgres import Postgres_Query, function_to_labda_handler
 import answers
 from config import TOKEN
 import buttons
@@ -12,6 +12,8 @@ from aiogram.dispatcher import FSMContext
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.contrib.middlewares.logging import LoggingMiddleware
 import aiogram.utils.markdown as md
+import re
+
 
 logging.basicConfig(level=logging.INFO)
 bot = Bot(token=TOKEN)
@@ -23,12 +25,15 @@ dp.middleware.setup(LoggingMiddleware())
 codes = ['categories', 'add category', 'add expense', 'cancel', 'drop',
          'back_to_main', 'drop_categories', 'drop_expenses']
 
+postgres = Postgres_Query()
+
 
 @dp.callback_query_handler(lambda callback: callback.data, state="*")
-async def process_callback_button(callback_query: types.CallbackQuery, state: FSMContext):
+async def process_callback_button(callback_query: types.CallbackQuery,
+                                  state: FSMContext):
     # Перейти на кнопки везде где это возможно
     global msg_id
-    #state = dp.current_state(user=callback_query.from_user.id)
+    # state = dp.current_state(user=callback_query.from_user.id)
     user_id = callback_query.from_user.id
     code = callback_query.data
     msg_id = callback_query.message.message_id
@@ -76,28 +81,25 @@ async def process_callback_button(callback_query: types.CallbackQuery, state: FS
                                     message_id=callback_query.message.message_id,
                                     reply_markup=buttons.all_buttons(),
                                     text=answers.start)
+        await state.finish()
 
     elif code == 'drop_categories':
         await process_drop_user_categories(user_id, msg_id)
 
     elif code not in codes:
-        await User_states.choose_category.set()
-        user_message = code
+        # await User_states.choose_category.set()
         async with state.proxy() as data:
             data['category'] = code
-        print(data)
         await User_states.next()
         await bot.edit_message_text(chat_id=callback_query.from_user.id,
                                     message_id=callback_query.message.message_id,
                                     reply_markup=buttons.all_buttons(),
                                     text='Введите цифру')
     """
-        
-    elif code == 'drop_expenses':
+        elif code == 'drop_expenses':
         await process_drop_user_expenses(user_id, msg_id)
     """
-    """
-    """
+
     # отрисовываем кнопки из buttons.py
 
 
@@ -137,33 +139,69 @@ async def process_add_category(message: types.Message, state: FSMContext):
                                     text=answers.category_added)
 
 
-
-@dp.message_handler(state=User_states.choose_category)
+"""@dp.message_handler(state=User_states.choose_category)
 async def process_add_expense(message: types.Message, state: FSMContext):
     user_message = message.text
     async with state.proxy() as data:
         data['category'] = message.text
         print(data)
-    await User_states.next()
-    await bot.send_message(message.from_user.id,
-                           user_message,  # message
-                           reply_markup=buttons.categories_buttons(clean=True))
-
-
-@dp.message_handler(lambda message: not message.text.isdigit(),
+    await User_states.next()"""
+"""
+@dp.message_handler(lambda message: not bool(re.search('\d',message.text))
+                                    and len(message.text.split(' '))!=1,
                     state=User_states.add_expense)
 async def process_input_invalid(message: types.Message):
-    return await message.reply('NOT A DIGIT')
+    await bot.edit_message_text(chat_id=message.from_user.id, message_id=msg_id,
+                                reply_markup=buttons.all_buttons(),
+                                text='Не содержит цифр')
+"""
 
 
+# реализована проверка на наличие цифры в строке
+# Подумать над проверкой на содержание более чем одной цифры
+# Можно так же проверить наличие пробелов, если они есть - значит можно
+# предположить что в строке отделены товар/услуга и цена
+
+@dp.message_handler(lambda message: function_to_labda_handler(message.text),
+                    state=User_states.add_expense)
+async def process_input_invalid(message: types.Message):
+    await bot.edit_message_text(chat_id=message.from_user.id,
+                                message_id=msg_id,
+                                reply_markup=buttons.all_buttons(),
+                                text='неверный формат')
+
+
+"""@dp.message_handler(lambda message: not bool(re.search('\d', message.text))
+                                    and len(message.text.split(' ')) > 1,
+                    state=User_states.add_expense)
+async def process_input_invalid(message: types.Message):
+    await bot.edit_message_text(chat_id=message.from_user.id,
+                                message_id=msg_id,
+                                reply_markup=buttons.all_buttons(),
+                                text='Вы должны были ввести цену и товар, '
+                                     'но я не вижу цены')"""
+
+
+# and
+# если подразумевается что-то с объёмом, то должно быть как минимум две цифры
 @dp.message_handler(state=User_states.add_expense)
 async def process_test(message: types.Message, state: FSMContext):
     await state.update_data(expence=message.text)
     async with state.proxy() as data:
+        """
         await bot.send_message(message.chat.id, md.text(
             md.text(data['category']),
             md.text(data['expence'])
-        ))
+        ))"""
+        print(type(message.text))
+        bot_message = data['category'] + ' ' + data['expence']
+        await postgres.parse_user_expence(data['expence'])
+        # передать 'expence' в парсер, выделить в нём цену, большая цифра -
+        # это цена, остальное - товар/услуга
+        await bot.edit_message_text(chat_id=message.from_user.id,
+                                    message_id=msg_id,
+                                    reply_markup=buttons.all_buttons(),
+                                    text=bot_message)
     await state.finish()
 
 

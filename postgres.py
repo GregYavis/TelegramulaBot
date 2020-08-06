@@ -3,6 +3,16 @@ import asyncpg
 import re
 
 
+def function_to_labda_handler(text):
+    return (not bool(re.search('\d', text)) and len(text.split(' ')) == 1) or \
+           (not bool(re.search('\d', text)) and len(text.split(' ')) > 1) or \
+           (len(
+               re.findall(
+                   '[-+]?[.]?[\d]+(?:,\d\d\d)*[\.]?\d*(?:[eE][-+]?\d+)?', text
+               )
+           ) > 2)
+
+
 class Postgres_Query:
     async def query_execute(self, query, select=False):
         self.connection = await asyncpg.connect(user='postgres',
@@ -10,12 +20,10 @@ class Postgres_Query:
                                                 password='khamul')
         if select:
             selection = await self.connection.fetch(query)
-            print('close')
             await self.connection.close()
             return selection
         else:
             await self.connection.execute(query)
-            print('close')
         await self.connection.close()
 
     async def create_user_category(self, user_id: int, category):
@@ -40,12 +48,18 @@ class Postgres_Query:
         await self.query_execute(query_string)
 
     async def add_user_expense(self):
-
         pass
 
-    async def parse_user_input(self, text):
-        self.parse_input = re.split('\n', text)  # class list
-        print(type(self.parse_input))
+    async def parse_user_expence(self, text: str):
+        print(text)
+
+        self.parse_digits = re.findall('[-+]?[.]?[\d]+(?:,\d\d\d)*[\.]?\d*(?:['
+                                       'eE][-+]?\d+)?', text)  # class list
+        goods = [good for good in text.split(' ') if
+                 good not in self.parse_digits]
+        # print(goods)
+        price = max([float(digit) for digit in self.parse_digits])
+        # print(price)
 
         # except asyncpg.exceptions.UndefinedTableError:
 
