@@ -6,6 +6,9 @@ from aiogram.utils.helper import Helper, HelperMode, ListItem
 
 
 class User_states(StatesGroup):
-    mode = HelperMode.snake_case
+    #mode = HelperMode.snake_case
     add_category = State()
+    choose_category = State()
     add_expense = State()
+
+

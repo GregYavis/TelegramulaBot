@@ -2,6 +2,7 @@ import asyncio
 import asyncpg
 import re
 
+
 class Postgres_Query:
     async def query_execute(self, query, select=False):
         self.connection = await asyncpg.connect(user='postgres',
@@ -43,9 +44,8 @@ class Postgres_Query:
         pass
 
     async def parse_user_input(self, text):
-        self.parse_input = re.split('\n', text) #class list
+        self.parse_input = re.split('\n', text)  # class list
         print(type(self.parse_input))
-
 
         # except asyncpg.exceptions.UndefinedTableError:
 

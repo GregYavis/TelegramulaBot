@@ -21,6 +21,7 @@ drop_categories = 'Ваши категории позабыты'
 drop_expenses = 'Ваши траты позабыты'
 add_category = 'Введите название категории и отправьте мне'
 category_added = 'Категория была добавлена'
+please_choose_category = 'Выберите категорию'
 async def manual_text(user_firstname):
     manual = 'Привет {0}.\n\n' \
              'Этот бот позволяет вести учёт собственных финансов.\n' \
