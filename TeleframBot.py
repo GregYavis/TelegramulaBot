@@ -4,7 +4,8 @@ from aiogram import Bot, types
 from aiogram.dispatcher import Dispatcher
 from aiogram.utils import executor
 from utils import User_states
-from postgres import Postgres_Query, function_to_labda_handler
+from postgres import Postgres_Query
+from parsers import function_to_lamda_handler, parse_user_expence
 import answers
 from config import TOKEN
 import buttons
@@ -162,7 +163,7 @@ async def process_input_invalid(message: types.Message):
 # Можно так же проверить наличие пробелов, если они есть - значит можно
 # предположить что в строке отделены товар/услуга и цена
 
-@dp.message_handler(lambda message: function_to_labda_handler(message.text),
+@dp.message_handler(lambda message: function_to_lamda_handler(message.text),
                     state=User_states.add_expense)
 async def process_input_invalid(message: types.Message):
     await bot.edit_message_text(chat_id=message.from_user.id,
@@ -170,32 +171,16 @@ async def process_input_invalid(message: types.Message):
                                 reply_markup=buttons.all_buttons(),
                                 text='неверный формат')
 
-
-"""@dp.message_handler(lambda message: not bool(re.search('\d', message.text))
-                                    and len(message.text.split(' ')) > 1,
-                    state=User_states.add_expense)
-async def process_input_invalid(message: types.Message):
-    await bot.edit_message_text(chat_id=message.from_user.id,
-                                message_id=msg_id,
-                                reply_markup=buttons.all_buttons(),
-                                text='Вы должны были ввести цену и товар, '
-                                     'но я не вижу цены')"""
-
-
 # and
 # если подразумевается что-то с объёмом, то должно быть как минимум две цифры
 @dp.message_handler(state=User_states.add_expense)
 async def process_test(message: types.Message, state: FSMContext):
-    await state.update_data(expence=message.text)
+    await state.update_data(expence=message.text) #добавляем трату к
+    # категории к которой она относится
     async with state.proxy() as data:
-        """
-        await bot.send_message(message.chat.id, md.text(
-            md.text(data['category']),
-            md.text(data['expence'])
-        ))"""
-        print(type(message.text))
         bot_message = data['category'] + ' ' + data['expence']
-        await postgres.parse_user_expence(data['expence'])
+        print(bot_message)
+        await parse_user_expence(data['expence'])
         # передать 'expence' в парсер, выделить в нём цену, большая цифра -
         # это цена, остальное - товар/услуга
         await bot.edit_message_text(chat_id=message.from_user.id,

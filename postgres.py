@@ -2,17 +2,6 @@ import asyncio
 import asyncpg
 import re
 
-
-def function_to_labda_handler(text):
-    return (not bool(re.search('\d', text)) and len(text.split(' ')) == 1) or \
-           (not bool(re.search('\d', text)) and len(text.split(' ')) > 1) or \
-           (len(
-               re.findall(
-                   '[-+]?[.]?[\d]+(?:,\d\d\d)*[\.]?\d*(?:[eE][-+]?\d+)?', text
-               )
-           ) > 2)
-
-
 class Postgres_Query:
     async def query_execute(self, query, select=False):
         self.connection = await asyncpg.connect(user='postgres',
@@ -50,20 +39,24 @@ class Postgres_Query:
     async def add_user_expense(self):
         pass
 
-    async def parse_user_expence(self, text: str):
-        print(text)
+"""    async def parse_user_expence(self, text: str):
+        self.parse_digits = [
+            float(digit) for digit in self.digits_parser(text)]
+        price = max(self.parse_digits)  # передаётся в таблицу
+        splitted_input = text.split(' ')
+        for element in splitted_input:
+            if self.digits_parser(element):
+                digit = float(self.digits_parser(element)[0])
+                if price == digit:
+                    splitted_input.pop(splitted_input.index(element))
+        return 
 
-        self.parse_digits = re.findall('[-+]?[.]?[\d]+(?:,\d\d\d)*[\.]?\d*(?:['
-                                       'eE][-+]?\d+)?', text)  # class list
-        goods = [good for good in text.split(' ') if
-                 good not in self.parse_digits]
-        # print(goods)
-        price = max([float(digit) for digit in self.parse_digits])
-        # print(price)
-
-        # except asyncpg.exceptions.UndefinedTableError:
-
-
+    def digits_parser(self, string_input):
+        self.parsed =  re.findall(
+            '[-+]?[.]?[\d]+(?:,\d\d\d)*[\.]?\d*(?:[eE][-+]?\d+)?',
+            string_input)
+        return self.parsed
+"""
 if __name__ == '__main__':
     open = Postgres_Query()
     # asyncio.get_event_loop().run_until_complete(open.open_connect())
