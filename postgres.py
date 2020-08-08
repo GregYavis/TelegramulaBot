@@ -2,6 +2,7 @@ import asyncio
 import asyncpg
 import re
 
+
 class Postgres_Query:
     async def query_execute(self, query, select=False):
         self.connection = await asyncpg.connect(user='postgres',
@@ -32,12 +33,20 @@ class Postgres_Query:
             return False  # return to check that user's table doesn't exists
 
     async def drop_user_categories(self, user_id: int):
+        print(self.select_user_categories(user_id))
+        """
         query_string = 'DROP TABLE IF EXISTS {0}'.format(
             'categories' + str(user_id))
+        await self.query_execute(query_string)
+        """
+    async def delete_user_category(self, user_id: int, category):
+        query_string = 'DELETE FROM {0} WHERE category=(''\'{1}\')'.format(
+            'categories' + str(user_id), category)
         await self.query_execute(query_string)
 
     async def add_user_expense(self):
         pass
+
 
 """    async def parse_user_expence(self, text: str):
         self.parse_digits = [

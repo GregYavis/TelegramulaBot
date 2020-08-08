@@ -10,5 +10,6 @@ class User_states(StatesGroup):
     add_category = State()
     choose_category = State()
     add_expense = State()
+    #drop_category = State()
 
 
