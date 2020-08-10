@@ -1,4 +1,5 @@
 import asyncio
+import datetime
 import logging
 from aiogram import Bot, types
 from aiogram.dispatcher import Dispatcher
@@ -26,7 +27,7 @@ postgres = Postgres_Query()
 button_action = CallbackData('content', 'action', 'button_name')
 
 
-@dp.callback_query_handler(button_action.filter(button_name='show_categories'))
+@dp.callback_query_handler(button_action.filter(action='show_categories'))
 async def process_show_categories(callback_query: types.CallbackQuery):
     user_id = callback_query.from_user.id
     postgres = Postgres_Query()
@@ -41,7 +42,22 @@ async def process_show_categories(callback_query: types.CallbackQuery):
                                 text=answer)
 
 
-@dp.callback_query_handler(button_action.filter(button_name='add_category'))
+@dp.callback_query_handler(button_action.filter(action='back_to_main'),
+                           state='*')
+async def process_show_drops(callback_query: types.CallbackQuery,
+                             state: FSMContext):
+    user_id = callback_query.from_user.id
+    await bot.edit_message_text(chat_id=user_id,
+                                message_id=callback_query.message.message_id,
+                                reply_markup=buttons.all_buttons(
+                                    cancel_button=False),
+                                text='Действие отменено')
+    await state.finish()
+
+
+# User_states.deleting
+
+@dp.callback_query_handler(button_action.filter(action='add_category'))
 async def process_add_category(callback_query: types.CallbackQuery):
     user_id = callback_query.from_user.id
     global msg_id
@@ -54,7 +70,7 @@ async def process_add_category(callback_query: types.CallbackQuery):
                                 text=answers.add_category)
 
 
-@dp.callback_query_handler(button_action.filter(button_name='add_expense'))
+@dp.callback_query_handler(button_action.filter(action='add_expense'))
 async def process_add_expense(callback_query: types.CallbackQuery):
     # print(callback_query.data.split(':'))
     user_id = callback_query.from_user.id
@@ -87,9 +103,10 @@ async def process_choose_category_expense(callback_query: types.CallbackQuery,
                                 text='Введите цифру')
 
 
-@dp.callback_query_handler(button_action.filter(button_name='drop'))
+@dp.callback_query_handler(button_action.filter(action='drop'), state='*')
 async def process_show_drops(callback_query: types.CallbackQuery):
     user_id = callback_query.from_user.id
+    await User_states.deleting.set()
     msg_id = callback_query.message.message_id
     await bot.edit_message_text(chat_id=user_id,
                                 message_id=msg_id,
@@ -97,7 +114,44 @@ async def process_show_drops(callback_query: types.CallbackQuery):
                                 text='Выбор')
 
 
-@dp.callback_query_handler(button_action.filter(button_name='drop_categories'))
+@dp.callback_query_handler(button_action.filter(action='drop_expenses'),
+                           state='*')
+async def process_show_last_five(callback_query: types.CallbackQuery,state: FSMContext):
+    user_id = callback_query.from_user.id
+    msg_id = callback_query.message.message_id
+    postgres = Postgres_Query()
+    last_five_expenses = await postgres.get_last_five(user_id)
+    if not len(last_five_expenses):
+        await state.finish()
+        await bot.edit_message_text(chat_id=user_id,
+                                    message_id=msg_id,
+                                    reply_markup=buttons.all_buttons(),
+                                    text='Ваши траты уже удалены либо ещё '
+                                         'отсутствуют')
+
+    else:
+        keyboard = buttons.last_five(last_five_expenses)
+        await state.finish()
+        await bot.edit_message_text(chat_id=user_id,
+                                    message_id=msg_id,
+                                    reply_markup=keyboard,
+                                    text='Выбор траты для удаления')
+
+@dp.callback_query_handler(button_action.filter(action='choose_and_delete'),
+                           state='*')
+async def process_delete_expense_from_last_five(callback_query:types.CallbackQuery):
+    user_id = callback_query.from_user.id
+    msg_id = callback_query.message.message_id
+    postgres = Postgres_Query()
+    expense_id = callback_query.data.split(':')[2]
+    await postgres.delete_expense(expense_id=expense_id, user_id=user_id)
+    await bot.edit_message_text(chat_id=user_id,
+                                message_id=msg_id,
+                                reply_markup=buttons.all_buttons(),
+                                text='Запись удалена')
+
+@dp.callback_query_handler(button_action.filter(action='drop_category'),
+                           state='*')
 async def process_choose_category_delete(callback_query: types.CallbackQuery):
     postgres = Postgres_Query()
     user_id = callback_query.from_user.id
@@ -118,105 +172,13 @@ async def process_delete_category(callback_query: types.CallbackQuery):
     await bot.edit_message_text(chat_id=user_id,
                                 message_id=callback_query.message.message_id,
                                 reply_markup=buttons.all_buttons(),
-                                text='Категория {} удалена'.format(category))
+                                text='Категория {0} удалена'.format(category))
 
-
-@dp.callback_query_handler(button_action.filter(action='back_to_main'))
-async def process_show_drops(callback_query: types.CallbackQuery,
-                             state: FSMContext):
-    user_id = callback_query.from_user.id
-    await state.finish()
-    # user_categories = await postgres.select_user_categories(user_id)
-    await bot.edit_message_text(chat_id=user_id,
-                                message_id=callback_query.message.message_id,
-                                reply_markup=buttons.all_buttons(),
-                                text='Действие отменено')
-
-    """
-    user_id = callback_query.from_user.id
-    await User_states.choose_category.set()
+@dp.callback_query_handler((button_action.filter(action = 'get_day_expenses')))
+async def process_get_day(callback_query: types.CallbackQuery):
     postgres = Postgres_Query()
-    user_categories = await postgres.select_user_categories(user_id)
-    keyboard = buttons.choose_category_to_expense(
-        categories_list=user_categories)
-
-    await bot.edit_message_text(chat_id=user_id,
-                                message_id=callback_query.message.message_id,
-                                reply_markup=keyboard,
-                                text='Выберите категорию')"""
-
-
-"""
-"""
-"""
-@dp.callback_query_handler(button_action.filter(action='choose_category'),state=User_states.choose_category)
-async def process_add_category(callback_query: types.CallbackQuery, state: FSMContext):
-    print('choose')
-    await state.update_data(category=callback_query.data)
-    print(callback_query)
-    #await User_states.next()
-    await bot.edit_message_text(chat_id=callback_query.from_user.id,
-                                message_id=callback_query.message.message_id,
-                                reply_markup=buttons.all_buttons(),
-                                text='Введите цифру')
-"""
-"""
-    elif code == 'add expense':
-        postgres = Postgres_Query()
-        user_categories = await postgres.select_user_categories(user_id)
-        keyboard = buttons.delete_categories(categories_list=user_categories)
-        await bot.edit_message_text(chat_id=user_id,
-                                    message_id=callback_query.message.message_id,
-                                    reply_markup=keyboard,
-                                    text='Выберите категорию')
-
-        await User_states.choose_category.set()
-
-    elif code == 'cancel':
-        await bot.edit_message_text(chat_id=user_id, message_id=msg_id,
-                                    reply_markup=buttons.all_buttons(),
-                                    text=answers.start)
-
-    elif code == 'drop':
-        await bot.edit_message_text(chat_id=user_id,
-                                    message_id=callback_query.message.message_id,
-                                    reply_markup=buttons.drop_buttons(),
-                                    text=answers.drop)
-    elif code == 'back_to_main':
-        await bot.edit_message_text(chat_id=callback_query.from_user.id,
-                                    message_id=callback_query.message.message_id,
-                                    reply_markup=buttons.all_buttons(),
-                                    text=answers.start)
-        await state.finish()
-
-    elif code == 'drop_categories':
-        # передать как аргумент от
-        postgres = Postgres_Query()
-        user_categories = await postgres.select_user_categories(user_id)
-        keyboard = buttons.delete_categories(categories_list=user_categories)
-        await bot.edit_message_text(chat_id=user_id,
-                                    message_id=callback_query.message.message_id,
-                                    reply_markup=keyboard,
-                                    text='Выберите категорию для удаления')
-        await User_states.drop_category.set()
-        # await process_drop_user_categories(user_id, msg_id)
-
-    elif code not in codes:
-
-        # await User_states.choose_category.set()
-        await User_states.next()
-        await bot.edit_message_text(chat_id=callback_query.from_user.id,
-                                    message_id=callback_query.message.message_id,
-                                    reply_markup=buttons.all_buttons(),
-                                    text='Введите цифру')"""
-"""
-        elif code == 'drop_expenses':
-        await process_drop_user_expenses(user_id, msg_id)
-"""
-
-
-# отрисовываем кнопки из buttons.py
-
+    user_id = callback_query.from_user.id
+    date = datetime.datetime.now().date()
 
 @dp.message_handler(commands=['start'])
 async def process_start_command(message: types.Message):
@@ -277,13 +239,25 @@ async def process_input_invalid(message: types.Message):
 # если подразумевается что-то с объёмом, то должно быть как минимум две цифры
 
 @dp.message_handler(state=User_states.add_expense)
-async def process_test(message: types.Message, state: FSMContext):
+async def process_record_user_expense(message: types.Message, state:
+FSMContext):
     await state.update_data(expence=message.text)  # добавляем трату к
     # категории к которой она относится
+    postgres = Postgres_Query()
+    user_id = message.from_user.id
+    date = datetime.datetime.now().date()
+    # print(date)
     async with state.proxy() as data:
         bot_message = data['category'] + ' ' + data['expence']
-        print(bot_message)
-        await parse_user_expence(data['expence'])
+        user_input = await parse_user_expence(data['expence'])
+
+        expense_data = {'user_id': user_id,
+                        'category': data['category'],
+                        'merchandise': user_input['merchandise'],
+                        'price': user_input['price'],
+                        'date': date
+                        }
+        await postgres.add_user_expense(expense_data)
         # передать 'expence' в парсер, выделить в нём цену, большая цифра -
         # это цена, остальное - товар/услуга
         await bot.edit_message_text(chat_id=message.from_user.id,
@@ -327,7 +301,7 @@ async def commands_list(message: types.Message):
 # переделать так как он удаляет последнюю только за текущий день
 @dp.message_handler(commands=['dellast'])
 async def delete_last_expence(message: types.Message):
-    user_id = message.from_user.id
+    user_id = message.from_user.expense_id
     delete_expense = await operationsMongo.delete_last_expence(user_id)
     await message.answer(delete_expense)
 
@@ -335,7 +309,7 @@ async def delete_last_expence(message: types.Message):
 @dp.message_handler(commands=['dreport'])
 async def create_daily_report(msg: types.Message):
     # date = str(msg.date)[:10]
-    user_id = msg.from_user.id
+    user_id = msg.from_user.expense_id
     report = await operationsMongo.create_daily_report(user_id)
     await msg.answer(report)
 """
