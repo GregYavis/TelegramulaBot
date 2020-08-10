@@ -42,6 +42,25 @@ async def process_show_categories(callback_query: types.CallbackQuery):
                                 text=answer)
 
 
+@dp.callback_query_handler(button_action.filter(action='Utility'))
+async def process_show_utility(callback_query: types.CallbackQuery):
+    await bot.edit_message_text(chat_id=callback_query.from_user.id,
+                                message_id=callback_query.message.message_id,
+                                reply_markup=buttons.utility_buttons(),
+                                text='Другие функции')
+
+@dp.callback_query_handler(button_action.filter(action = 'get_report'))
+async def process_get_report(callback_query: types.CallbackQuery):
+    user_id = callback_query.from_user.id
+    postgres = Postgres_Query()
+    report = await postgres.get_report(user_id=user_id)
+    #Send message
+    await bot.edit_message_text(chat_id=user_id,
+                                message_id=callback_query.message.message_id,
+                                reply_markup=buttons.all_buttons(),
+                                text=report)
+
+
 @dp.callback_query_handler(button_action.filter(action='back_to_main'),
                            state='*')
 async def process_show_drops(callback_query: types.CallbackQuery,
@@ -116,7 +135,8 @@ async def process_show_drops(callback_query: types.CallbackQuery):
 
 @dp.callback_query_handler(button_action.filter(action='drop_expenses'),
                            state='*')
-async def process_show_last_five(callback_query: types.CallbackQuery,state: FSMContext):
+async def process_show_last_five(callback_query: types.CallbackQuery,
+                                 state: FSMContext):
     user_id = callback_query.from_user.id
     msg_id = callback_query.message.message_id
     postgres = Postgres_Query()
@@ -137,9 +157,11 @@ async def process_show_last_five(callback_query: types.CallbackQuery,state: FSMC
                                     reply_markup=keyboard,
                                     text='Выбор траты для удаления')
 
+
 @dp.callback_query_handler(button_action.filter(action='choose_and_delete'),
                            state='*')
-async def process_delete_expense_from_last_five(callback_query:types.CallbackQuery):
+async def process_delete_expense_from_last_five(
+        callback_query: types.CallbackQuery):
     user_id = callback_query.from_user.id
     msg_id = callback_query.message.message_id
     postgres = Postgres_Query()
@@ -149,6 +171,7 @@ async def process_delete_expense_from_last_five(callback_query:types.CallbackQue
                                 message_id=msg_id,
                                 reply_markup=buttons.all_buttons(),
                                 text='Запись удалена')
+
 
 @dp.callback_query_handler(button_action.filter(action='drop_category'),
                            state='*')
@@ -174,11 +197,25 @@ async def process_delete_category(callback_query: types.CallbackQuery):
                                 reply_markup=buttons.all_buttons(),
                                 text='Категория {0} удалена'.format(category))
 
-@dp.callback_query_handler((button_action.filter(action = 'get_day_expenses')))
+
+@dp.callback_query_handler((button_action.filter(action='get_day_expenses')))
 async def process_get_day(callback_query: types.CallbackQuery):
     postgres = Postgres_Query()
     user_id = callback_query.from_user.id
+    msg_id = callback_query.message.message_id
     date = datetime.datetime.now().date()
+    message = await postgres.get_day(user_id=user_id, date=date)
+    if not message:
+        await bot.edit_message_text(chat_id=callback_query.from_user.id,
+                                    message_id=msg_id,
+                                    reply_markup=buttons.all_buttons(),
+                                    text='Сегодня вы ни на что не тратились')
+    else:
+        await bot.edit_message_text(chat_id=callback_query.from_user.id,
+                                    message_id=msg_id,
+                                    reply_markup=buttons.all_buttons(),
+                                    text=message)
+
 
 @dp.message_handler(commands=['start'])
 async def process_start_command(message: types.Message):

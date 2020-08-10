@@ -1,7 +1,6 @@
 import asyncio
+
 import asyncpg
-import re
-import datetime
 
 
 class Postgres_Query:
@@ -32,14 +31,6 @@ class Postgres_Query:
             return user_categories
         except asyncpg.exceptions.UndefinedTableError:
             return False  # return to check that user's table doesn't exists
-
-    async def drop_user_categories(self, user_id: int):
-        print(self.select_user_categories(user_id))
-        """
-        query_string = 'DROP TABLE IF EXISTS {0}'.format(
-            'categories' + str(user_id))
-        await self.query_execute(query_string)
-        """
 
     async def delete_user_category(self, user_id: int, category):
         query = 'DELETE FROM {0} WHERE category=(''\'{1}\')'.format(
@@ -80,10 +71,28 @@ class Postgres_Query:
         # print(expense['category'], expense['goods'], expense['price'])
         return output
 
+    async def get_day(self, user_id, date):
+        query = 'SELECT * FROM {0} WHERE date_create = (''\'{1}\')'.format(
+            'expenses' + str(user_id), date)
+        day_expenses = await self.query_execute(query, select=True)
+        output = ''
+        for expense in range(len(day_expenses)):
+            # print(expense)
+            output += day_expenses[expense]['category'] + ' ' + \
+                      day_expenses[expense]['merchandise'] + ' ' + \
+                      str(day_expenses[expense]['price']) + ' ' + '\n'
+        return output
+
     async def delete_expense(self, expense_id, user_id):
         query = 'DELETE FROM {0} WHERE Id=(''\'{1}\')'.format(
             'expenses' + str(user_id), expense_id)
         await self.query_execute(query)
+
+    async def get_report(self, user_id):
+        qeury = 'SELECT * FROM {0}'.format('expenses' + str(user_id))
+        report = await self.query_execute(qeury, select=True)
+        #print(report)
+        return report
 
 
 if __name__ == '__main__':

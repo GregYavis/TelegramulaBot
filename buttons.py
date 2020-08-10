@@ -7,9 +7,9 @@ data = CallbackData('content', 'action', 'button_name')
 
 
 def all_buttons(cancel_button=False):
-    categories_button = InlineKeyboardButton('Show my categories',
+    utility_button = InlineKeyboardButton('Utility',
                                              callback_data=data.new(action=
-                                                                    'show_categories',
+                                                                    'Utility',
                                                                     button_name='-'))
     add_category_button = InlineKeyboardButton('Add category',
                                                callback_data=data.new(action=
@@ -19,23 +19,43 @@ def all_buttons(cancel_button=False):
                                               callback_data=data.new(action=
                                                                      'add_expense',
                                                                      button_name='-'))
-    day_expenses_button = InlineKeyboardButton('My day expenses', callback_data=
-                                               data.new(action =
-                                                        'get_day_expenses',
-                                                        button_name='-'))
+
     all_buttons = InlineKeyboardMarkup(row_width=3)
     all_buttons.add(add_category_button, add_expense_button)
-    all_buttons.add(day_expenses_button)
+
     drop = InlineKeyboardButton('Drop', callback_data=data.new(action='drop',
                                                                button_name='-'))
-    all_buttons.add(drop, categories_button)
+    all_buttons.add(drop, utility_button)
     if cancel_button:
         cancel = InlineKeyboardButton('Cancel', callback_data=data.new(
             action='back_to_main',
             button_name='-'))
         all_buttons.add(cancel)
     return all_buttons
-
+def utility_buttons():
+    utils_buttons = InlineKeyboardMarkup(row_width=3)
+    day_expenses_button = InlineKeyboardButton('My day expenses',
+                                               callback_data=
+                                               data.new(action=
+                                                        'get_day_expenses',
+                                                        button_name='-'))
+    categories_button = InlineKeyboardButton('Show categories',
+                                          callback_data=data.new(action=
+                                                                 'show_categories',
+                                                                 button_name='-'))
+    report_button = InlineKeyboardButton('Get report',
+                                         callback_data=data.new(
+                                             action = 'get_report',
+                                             button_name = '-'
+                                         ))
+    back_button = InlineKeyboardButton('Back',
+                                       callback_data=data.new(action=
+                                                              'back_to_main',
+                                                              button_name='-'))
+    utils_buttons.add(day_expenses_button, categories_button)
+    utils_buttons.add(report_button)
+    utils_buttons.add(back_button)
+    return utils_buttons
 
 def drop_buttons():
     drop_categories = InlineKeyboardButton('Drop categories',
