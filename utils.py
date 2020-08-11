@@ -11,5 +11,7 @@ class User_states(StatesGroup):
     choose_category = State()
     add_expense = State()
     deleting = State()
+    set_balance = State()
+    update_balance = State()
 
 
