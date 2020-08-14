@@ -127,7 +127,3 @@ def last_five(last_expenses=None):
                                        button_name='back'))
     expenses.add(back_button)
     return expenses
-
-# res = ReplyKeyboardRemove()
-
-# при нажатии кнопки поменять состояние

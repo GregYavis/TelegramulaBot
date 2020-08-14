@@ -1,8 +1,4 @@
 import random
-import message_parser
-from aiogram import Bot, types
-from aiogram.dispatcher import Dispatcher
-from aiogram.utils import executor
 
 category_exists = 'Данная категория уже существует'
 user_hasnt_categoty = 'Вы ещё не создали ни одной категории\n' \
@@ -22,6 +18,8 @@ drop_expenses = 'Ваши траты позабыты'
 add_category = 'Введите название категории и отправьте мне'
 category_added = 'Категория была добавлена'
 please_choose_category = 'Выберите категорию'
+
+
 async def manual_text(user_firstname):
     manual = 'Привет {0}.\n\n' \
              'Этот бот позволяет вести учёт собственных финансов.\n' \
@@ -41,6 +39,7 @@ async def manual_text(user_firstname):
              '/commandslist'.format(user_firstname)
     return manual
 
+
 async def add_category_answers(*ret):
     answer = ret
     if answer[0] is False:
@@ -52,6 +51,7 @@ async def add_category_answers(*ret):
     else:
         answer_massage = "its okay to by GAY"
         return answer_massage
+
 
 async def add_expence_answers(*flags, category, text):
     flags = flags
