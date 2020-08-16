@@ -18,8 +18,15 @@ drop_expenses = 'Ваши траты позабыты'
 add_category = 'Введите название категории и отправьте мне'
 category_added = 'Категория была добавлена'
 please_choose_category = 'Выберите категорию'
-
-
+cancel = 'Действие отменено'
+day_expense_false = 'Сегодня вы ни на что не тратились'
+report_false ='Вы ещё ни на что не тратились'
+choose_category_to_delete = 'Выберите категорию для удаления'
+expense_deleted = 'Запись удалена'
+choose_expense_to_delete = 'Выбор траты для удаления'
+expenses_exists_false = 'Ваши траты уже удалены либо ещё отсутствуют'
+invalid_input = 'Неверный формат'
+invalid_update_input = 'Неверный формат обновления'
 async def manual_text(user_firstname):
     manual = 'Привет {0}.\n\n' \
              'Этот бот позволяет вести учёт собственных финансов.\n' \

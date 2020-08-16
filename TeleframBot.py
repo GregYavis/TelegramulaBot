@@ -1,8 +1,9 @@
+import asyncio
 import datetime
 import logging
 from aiogram import Bot, types
 from aiogram.dispatcher import Dispatcher
-from aiogram.utils import executor
+from aiogram.utils import executor, exceptions
 from utils import User_states
 from postgres import PostgresQuery
 from parsers import function_to_lamda_handler, parse_user_expence, \
@@ -16,6 +17,7 @@ from aiogram.contrib.middlewares.logging import LoggingMiddleware
 from aiogram.utils.callback_data import CallbackData
 
 logging.basicConfig(level=logging.INFO)
+log = logging.getLogger('broadcast')
 bot = Bot(token=TOKEN)
 dp = Dispatcher(bot, storage=MemoryStorage())
 dp.middleware.setup(LoggingMiddleware())
@@ -182,6 +184,7 @@ async def process_write_balance(message: types.Message, state: FSMContext):
     balance_input = message.text
     user_id = message.from_user.id
     await postgres.init_balance(user_id=user_id, balance=balance_input)
+    await postgres.register_user(user_id=user_id)
     await state.finish()
     await bot.edit_message_text(chat_id=message.from_user.id,
                                 message_id=msg_id,
@@ -195,7 +198,7 @@ async def process_input_invalid(message: types.Message):
     await bot.edit_message_text(chat_id=message.from_user.id,
                                 message_id=msg_id,
                                 reply_markup=buttons.only_back_button(),
-                                text='Неверный формат обновления')
+                                text=answers.invalid_update_input)
 
 
 @dp.message_handler(state=User_states.update_balance)
@@ -216,7 +219,7 @@ async def process_input_invalid(message: types.Message):
     await bot.edit_message_text(chat_id=message.from_user.id,
                                 message_id=msg_id,
                                 reply_markup=buttons.all_buttons(),
-                                text='неверный формат')
+                                text=answers.invalid_input)
 
 
 # если подразумевается что-то с объёмом, то должно быть как минимум две цифры
@@ -270,14 +273,14 @@ async def process_show_last_five(callback_query: types.CallbackQuery,
             chat_id=user_id,
             message_id=msg_id,
             reply_markup=buttons.all_buttons(),
-            text='Ваши траты уже удалены либо ещё отсутствуют')
+            text=answers.expenses_exists_false)
     else:
         last_five_expenses = await postgres.get_last_five(user_id)
         keyboard = buttons.last_five(last_five_expenses)
         await bot.edit_message_text(chat_id=user_id,
                                     message_id=msg_id,
                                     reply_markup=keyboard,
-                                    text='Выбор траты для удаления')
+                                    text=answers.choose_expense_to_delete)
 
 
 @dp.callback_query_handler(button_action.filter(action='choose_and_delete'),
@@ -291,7 +294,7 @@ async def process_delete_expense_from_last_five(
     await bot.edit_message_text(chat_id=user_id,
                                 message_id=callback_query.message.message_id,
                                 reply_markup=buttons.all_buttons(),
-                                text='Запись удалена')
+                                text=answers.expense_deleted)
 
 
 @dp.callback_query_handler(button_action.filter(action='drop_category'),
@@ -303,7 +306,7 @@ async def process_choose_category_delete(callback_query: types.CallbackQuery):
     await bot.edit_message_text(chat_id=user_id,
                                 message_id=callback_query.message.message_id,
                                 reply_markup=keyboard,
-                                text='Выберите категорию для удаления')
+                                text=answers.choose_category_to_delete)
 
 
 @dp.callback_query_handler(button_action.filter(action='delete'), state='*')
@@ -335,7 +338,7 @@ async def process_get_report(callback_query: types.CallbackQuery):
         await bot.edit_message_text(chat_id=user_id,
                                     message_id=callback_query.message.message_id,
                                     reply_markup=buttons.all_buttons(),
-                                    text='Вы ещё ни на что не тратились')
+                                    text=answers.report_false)
     else:
         xls_report = open("{0}.xls".format(user_id), 'rb')
         await bot.send_document(chat_id=callback_query.from_user.id,
@@ -357,7 +360,7 @@ async def process_get_day(callback_query: types.CallbackQuery):
         await bot.edit_message_text(chat_id=callback_query.from_user.id,
                                     message_id=callback_query.message.message_id,
                                     reply_markup=buttons.all_buttons(),
-                                    text='Сегодня вы ни на что не тратились')
+                                    text=answers.day_expense_false)
     else:
         await bot.edit_message_text(chat_id=callback_query.from_user.id,
                                     message_id=callback_query.message.message_id,
@@ -383,7 +386,7 @@ async def process_show_drops(callback_query: types.CallbackQuery,
     await bot.edit_message_text(chat_id=user_id,
                                 message_id=callback_query.message.message_id,
                                 reply_markup=buttons.all_buttons(),
-                                text='Действие отменено')
+                                text=answers.cancel)
     await state.finish()
 
 
@@ -398,6 +401,29 @@ async def process_help_command(message: types.Message):
 async def commands_list(message: types.Message):
     await message.answer(answers.bot_commandslist)
 
+
+@dp.message_handler(commands=['broadcast'])
+async def broadcast(message: types.Message):
+    if message.from_user.id == 302626122:
+        users = await postgres.get_users()
+        msg = message.text.split(' ')
+        msg.pop(0)
+        msg = ' '.join(msg)
+        for user in users:
+            try:
+                await bot.send_message(chat_id=user,text=msg)
+            except exceptions.BotBlocked:
+                log.error(f"Target [ID:{user}]: blocked by user")
+            except exceptions.ChatNotFound:
+                log.error(f"Target [ID:{user}]: invalid user ID")
+            except exceptions.UserDeactivated:
+                log.error(f"Target [ID:{user}]: user is deactivated")
+            except exceptions.TelegramAPIError:
+                log.exception(f"Target [ID:{user}]: failed")
+            else:
+                log.info(f"Target [ID:{user}]: success")
+    else:
+        log.info(f"someone try to broadcast")
 
 if __name__ == '__main__':
     executor.start_polling(dp)

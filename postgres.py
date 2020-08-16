@@ -36,10 +36,26 @@ class PostgresQuery:
         try:
             result = await self.query_execute(query_string=self.query,
                                               select=True)
+
             self.user_categories = [category[0] for category in result]
             return self.user_categories
         except asyncpg.exceptions.UndefinedTableError:
             return False  # return to check that user's table doesn't exists
+
+    async def register_user(self, user_id):
+        self.query = 'CREATE TABLE IF NOT EXISTS BotUsers ' \
+                     '(user_id INT);' \
+                     'INSERT INTO BotUsers VALUES (''\'{0}\');'.format(
+            user_id)
+        await self.query_execute(self.query)
+
+    async def get_users(self):
+        self.query = 'SELECT * FROM BotUsers;'
+        users_id = await self.query_execute(self.query, select=True)
+        users_list = [user[0] for user in users_id]
+        #print(users_list)
+        return users_list
+
 
     async def delete_user_category(self, user_id: int, category):
         self.query = 'DELETE FROM {0} WHERE category=(''\'{1}\')'.format(
@@ -171,4 +187,6 @@ if __name__ == '__main__':
     # user_id=16932, category='MOMM', goods='TITS', price=1.24,
     # date=datetime.datetime.now().date()))
 
-    asyncio.get_event_loop().run_until_complete(open.get_balance(302626122))
+    asyncio.get_event_loop().run_until_complete(open.get_users())
+   # asyncio.get_event_loop().run_until_complete(open.select_user_categories(
+       # 302626122))
