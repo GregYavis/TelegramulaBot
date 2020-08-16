@@ -340,7 +340,8 @@ async def process_get_report(callback_query: types.CallbackQuery):
         xls_report = open("{0}.xls".format(user_id), 'rb')
         await bot.send_document(chat_id=callback_query.from_user.id,
                                 document=xls_report,
-                                caption='FILE')
+                                caption='Ваш отчёт за всё время '
+                                        'использования бота')
         xls_report.close()
         """await bot.edit_message_text(chat_id=user_id,
                                     message_id=callback_query.message.message_id,
