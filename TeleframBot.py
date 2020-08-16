@@ -56,7 +56,7 @@ async def process_show_categories(callback_query: types.CallbackQuery):
         await bot.edit_message_text(chat_id=user_id,
                                     message_id=callback_query.message.message_id,
                                     reply_markup=buttons.all_buttons(),
-                                    text="У вас ещё нет ни одной категории")
+                                    text=answers.category_exists_false)
     else:
         for category in await postgres.select_user_categories(user_id=user_id):
             answer += category + '\n'
@@ -115,7 +115,7 @@ async def process_add_expense(callback_query: types.CallbackQuery):
         await bot.edit_message_text(chat_id=user_id,
                                     message_id=callback_query.message.message_id,
                                     reply_markup=buttons.all_buttons(),
-                                    text='Вы ещё не создали ни одной категории')
+                                    text=answers.category_exists_false)
     else:
         user_categories = await postgres.select_user_categories(user_id)
         keyboard = buttons.choose_category_expense(
@@ -123,7 +123,7 @@ async def process_add_expense(callback_query: types.CallbackQuery):
         await bot.edit_message_text(chat_id=user_id,
                                     message_id=callback_query.message.message_id,
                                     reply_markup=keyboard,
-                                    text='Выберите категорию')
+                                    text=answers.please_choose_category)
 
 
 @dp.callback_query_handler(button_action.filter(action='choose'))
@@ -138,7 +138,7 @@ async def process_choose_category_expense(callback_query: types.CallbackQuery,
         await bot.edit_message_text(chat_id=user_id,
                                     message_id=callback_query.message.message_id,
                                     reply_markup=buttons.all_buttons(),
-                                    text='Вы не задали начальный баланс')
+                                    text=answers.balance_exists_false)
     else:
         await User_states.choose_category.set()
         async with state.proxy() as data:
@@ -147,7 +147,7 @@ async def process_choose_category_expense(callback_query: types.CallbackQuery,
         await bot.edit_message_text(chat_id=user_id,
                                     message_id=callback_query.message.message_id,
                                     reply_markup=buttons.all_buttons(),
-                                    text='Введите цифру')
+                                    text=answers.input_number)
 
 
 @dp.callback_query_handler(button_action.filter(action='balance'), state='*')
@@ -160,14 +160,14 @@ async def process_balance(callback_query: types.CallbackQuery):
         await bot.edit_message_text(chat_id=user_id,
                                     message_id=msg_id,
                                     reply_markup=buttons.only_back_button(),
-                                    text='Введите значение баланса')
+                                    text=answers.input_balance)
     else:
         # current_balance = await postgres.get_balance(user_id=user_id)
         await User_states.update_balance.set()
         await bot.edit_message_text(chat_id=user_id,
                                     message_id=msg_id,
                                     reply_markup=buttons.only_back_button(),
-                                    text='Введите значение которое добавится к текущему балансу')
+                                    text=answers.update_balance)
 
 
 @dp.message_handler(lambda message: not bool(digits_parser(message.text)),
@@ -176,7 +176,7 @@ async def process_input_invalid(message: types.Message):
     await bot.edit_message_text(chat_id=message.from_user.id,
                                 message_id=msg_id,
                                 reply_markup=buttons.only_back_button(),
-                                text='Неверный формат баланса')
+                                text=answers.invalid_balance_input)
 
 
 @dp.message_handler(state=User_states.set_balance)
