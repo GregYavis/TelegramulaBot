@@ -1,4 +1,3 @@
-import asyncio
 import datetime
 import logging
 from aiogram import Bot, types
@@ -9,7 +8,7 @@ from postgres import PostgresQuery
 from parsers import function_to_lamda_handler, parse_user_expence, \
     digits_parser
 import answers
-from config import TOKEN
+from config import TOKEN, administrator_id
 import buttons
 from aiogram.dispatcher import FSMContext
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
@@ -33,19 +32,17 @@ button_action = CallbackData('content', 'action', 'button_name')
 # init user
 @dp.message_handler(commands=['start'], state='*')
 async def process_start_command(message: types.Message):
-    """
     user_id = message.from_user.id
-
     if not await postgres.select_user_categories(user_id=user_id):
-        await message.answer(text='Создайте по крайней мере одну '
-                                  'категорию',
-                             reply_markup=buttons.category_init_button())
+        await message.answer(text=await answers.manual_text(
+            message.from_user.first_name),
+                             reply_markup=buttons.all_buttons())
     elif not await postgres.get_balance(user_id=user_id):
-        await message.answer(text='Задайте начальный баланс',
-                             reply_markup=buttons.init_balance_button())
+        await message.answer(text= await answers.manual_text(
+            message.from_user.first_name),
+                             reply_markup=buttons.all_buttons())
     else:
-    """
-    await message.answer(answers.start, reply_markup=buttons.all_buttons())
+        await message.answer(answers.start, reply_markup=buttons.all_buttons())
 
 
 @dp.callback_query_handler(button_action.filter(action='show_categories'))
@@ -404,7 +401,7 @@ async def commands_list(message: types.Message):
 
 @dp.message_handler(commands=['broadcast'])
 async def broadcast(message: types.Message):
-    if message.from_user.id == 302626122:
+    if message.from_user.id == administrator_id:
         users = await postgres.get_users()
         msg = message.text.split(' ')
         msg.pop(0)
