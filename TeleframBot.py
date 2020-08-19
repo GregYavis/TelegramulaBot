@@ -420,8 +420,7 @@ async def broadcast(message: types.Message):
                 log.exception(f"Target [ID:{user}]: failed")
             else:
                 log.info(f"Target [ID:{user}]: success")
-    else:
-        log.info(f"someone try to broadcast")
+
 
 if __name__ == '__main__':
     executor.start_polling(dp)
