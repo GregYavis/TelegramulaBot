@@ -407,6 +407,7 @@ async def broadcast(message: types.Message):
         msg = message.text.split(' ')
         msg.pop(0)
         msg = ' '.join(msg)
+        print(msg)
         for user in users:
             try:
                 await bot.send_message(chat_id=user,text=msg)
@@ -420,8 +421,7 @@ async def broadcast(message: types.Message):
                 log.exception(f"Target [ID:{user}]: failed")
             else:
                 log.info(f"Target [ID:{user}]: success")
-    else:
-        log.info(f"someone try to broadcast")
+
 
 if __name__ == '__main__':
     executor.start_polling(dp)
